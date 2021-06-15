@@ -1,8 +1,11 @@
-key: 
-port: 8080
-debug: false
-certfile: public.pem
-keyfile: private.key
-syncfile: rules.json
-fakehost: www.upyun.com
-fakeurl: https://www.upyun.com
+key: key # API秘钥
+port: 8080 # API端口
+syncfile: rules.json # 同步规则备份路径，启动时导入
+
+debug: false # 调试模式
+
+certfile: public.pem # ssl 公钥路径
+keyfile: private.key # ssl 私钥路径
+
+fakehost: www.upyun.com # 隧道伪装host
+fakeurl: https://www.upyun.com # 隧道伪装反代网址
