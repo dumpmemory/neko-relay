@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"context"
 	"io"
 	"log"
 	"neko-relay/config"
@@ -32,7 +33,7 @@ type Relay struct {
 	RPORT      int
 	Traffic    *TF
 	Protocol   string
-	Status     bool
+	StopCh     chan struct{}
 }
 
 func NewRelay(r Rule, tcpTimeout, udpTimeout int, traffic *TF, protocol string) (*Relay, error) {
@@ -60,53 +61,58 @@ func NewRelay(r Rule, tcpTimeout, udpTimeout int, traffic *TF, protocol string) 
 		REMOTE:     r.Remote,
 		Traffic:    traffic,
 		Protocol:   protocol,
-		Status:     true,
 	}
 	return s, nil
 }
 
 // Run server.
-func (s *Relay) Serve() error {
+func (s *Relay) Serve() (err error) {
+	s.StopCh = make(chan struct{}, 16)
 	if s.Protocol == "tcp" || s.Protocol == "tcp+udp" {
-		go s.RunTCPServer()
+		if err = s.RunTCPServer(); err != nil {
+			return
+		}
 	}
 	if s.Protocol == "udp" || s.Protocol == "tcp+udp" {
-		go s.RunUDPServer()
+		if err = s.RunUDPServer(); err != nil {
+			return
+		}
 	}
 	if s.Protocol == "http" {
-		go s.RunHttpServer(false)
+		return s.RunHttpServer(false)
 	}
 	if s.Protocol == "https" {
-		go s.RunHttpServer(true)
-	}
-	if s.Protocol == "tls" {
-		go s.RunTCPServer()
+		return s.RunHttpServer(true)
 	}
 	if s.Protocol == "ws_tunnel_server" {
-		go s.RunWsTunnelServer(true, true)
+		return s.RunWsTunnelServer(true, true)
 	}
 	if s.Protocol == "ws_tunnel_client" {
-		go s.RunWsTunnelTcpClient()
-		go s.RunWsTunnelUdpClient()
+		if err = s.RunWsTunnelTcpClient(); err != nil {
+			return
+		}
+		return s.RunWsTunnelUdpClient()
 	}
 
 	if s.Protocol == "wss_tunnel_server" {
-		go s.RunWssTunnelServer(true, true)
+		return s.RunWssTunnelServer(true, true)
 	}
 	if s.Protocol == "wss_tunnel_client" {
-		go s.RunWssTunnelTcpClient()
-		go s.RunWssTunnelUdpClient()
+		if err = s.RunWssTunnelTcpClient(); err != nil {
+			return
+		}
+		return s.RunWssTunnelUdpClient()
 	}
 	return nil
 }
 
 // Shutdown server.
 func (s *Relay) Close() error {
-	s.Status = false
+	close(s.StopCh)
 	if s.Svr != nil {
-		s.Svr.Shutdown(nil)
+		s.Svr.Shutdown(context.Background())
 	}
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 	if s.TCPListen != nil {
 		s.TCPListen.Close()
 		s.TCPListen = nil
@@ -143,14 +149,19 @@ func Copy_io(dst io.Writer, src io.Reader, s *Relay) error {
 	// return nil
 	buf := Pool.Get().([]byte)
 	defer Pool.Put(buf)
-	for s.Status && dst != nil && src != nil && s.Traffic != nil {
-		n, err := src.Read(buf[:])
-		if err != nil {
-			break
-		}
-		s.Traffic.Add(uint64(n))
-		if _, err := dst.Write(buf[0:n]); err != nil {
-			break
+	for dst != nil && src != nil && s.Traffic != nil {
+		select {
+		case <-s.StopCh:
+			return nil
+		default:
+			n, err := src.Read(buf[:])
+			if err != nil {
+				return err
+			}
+			s.Traffic.Add(uint64(n))
+			if _, err := dst.Write(buf[0:n]); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

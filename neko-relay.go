@@ -17,7 +17,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-var Config config.CONF
+var (
+	Config config.CONF
+)
 
 func resp(c *gin.Context, success bool, data interface{}, code int) {
 	c.JSON(code, gin.H{
@@ -25,13 +27,13 @@ func resp(c *gin.Context, success bool, data interface{}, code int) {
 		"data":    data,
 	})
 }
-func check(r Rule) (bool, error) {
+func check(r Rule) error {
 	if r.Port > 65535 || r.Rport > 65535 {
-		return false, errors.New("port is not in range")
+		return errors.New("port is not in range")
 	}
-	return true, nil
+	return nil
 }
-func ParseRule(c *gin.Context) (rid string, r Rule, ok bool, err error) {
+func ParseRule(c *gin.Context) (rid string, r Rule, err error) {
 	rid = c.PostForm("rid")
 	port, _ := strconv.Atoi(c.PostForm("port"))
 	Port := uint(port)
@@ -42,11 +44,10 @@ func ParseRule(c *gin.Context) (rid string, r Rule, ok bool, err error) {
 	var RIP string
 	RIP, err = getIP(remote)
 	if err != nil {
-		ok = false
 		return
 	}
 	r = Rule{Port: Port, Remote: remote, RIP: RIP, Rport: Rport, Type: typ}
-	ok, err = check(r)
+	err = check(r)
 	return
 }
 func main() {
@@ -59,6 +60,10 @@ func main() {
 	flag.StringVar(&Config.Certfile, "certfile", "public.pem", "cert file")
 	flag.StringVar(&Config.Keyfile, "keyfile", "private.key", "key file")
 	flag.StringVar(&Config.Syncfile, "syncfile", "", "sync file")
+
+	// flag.StringVar(&Config.Dns.Server, "dns_server", "", "dns server")
+	// flag.StringVar(&Config.Dns.Network, "dns_network", "", "dns network (udp/tcp)")
+
 	flag.BoolVar(&Debug, "debug", false, "enable Config.Debug")
 	flag.BoolVar(&show_version, "v", false, "show version")
 	flag.Parse()
@@ -74,12 +79,12 @@ func main() {
 		// fmt.Println(Config)
 	}
 	Config.Debug = Debug
-	if show_version != false {
+	if show_version {
 		fmt.Println("neko-relay v1.4.3")
 		fmt.Println("TCP & UDP & WS TUNNEL & WSS TUNNEL & HTTP & HTTPS & STAT")
 		return
 	}
-	if Config.Debug != true {
+	if Config.Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	relay.Config = Config
@@ -90,13 +95,13 @@ func main() {
 		datapath = "/data/" + Config.Key
 	}
 	r.GET(datapath, getData)
-	if Config.Debug != true && Config.Key != "" {
+	if Config.Debug && Config.Key != "" {
 		r.Use(checkKey)
 	}
 	r.POST("/traffic", func(c *gin.Context) {
 		reset, _ := strconv.ParseBool(c.DefaultPostForm("reset", "false"))
 		y := gin.H{}
-		for item := range Traffic.Iter() {
+		for item := range Traffic.IterBuffered() {
 			rid, tf := item.Key, item.Val.(*relay.TF)
 			y[rid] = tf.Total()
 			if reset {
@@ -106,29 +111,50 @@ func main() {
 		resp(c, true, y, 200)
 	})
 	r.POST("/add", func(c *gin.Context) {
-		rid, r, ok, err := ParseRule(c)
-		if ok {
+		rid, r, err := ParseRule(c)
+		if err == nil {
 			Rules.Set(rid, r)
-			start(rid, r)
-			resp(c, true, nil, 200)
+			err = start(rid, r)
+			if err == nil {
+				resp(c, true, nil, 200)
+			} else {
+				resp(c, false, err.Error(), 500)
+			}
 		} else {
 			resp(c, false, err.Error(), 500)
 			return
 		}
 	})
 	r.POST("/edit", func(c *gin.Context) {
-		rid, r, ok, err := ParseRule(c)
-		if ok {
+		rid, r, err := ParseRule(c)
+		fmt.Println("edit", rid, r, err)
+		if err == nil {
 			stop(rid, r)
 			Rules.Set(rid, r)
-			start(rid, r)
-			resp(c, true, nil, 200)
-		}
-		if err != nil {
+			err = start(rid, r)
+			if err == nil {
+				resp(c, true, nil, 200)
+			} else {
+				resp(c, false, err.Error(), 500)
+			}
+		} else {
 			resp(c, false, err.Error(), 500)
 			return
 		}
-
+	})
+	r.POST("/restart", func(c *gin.Context) {
+		rid := c.PostForm("rid")
+		r, has := Rules.Get(rid)
+		if has {
+			err := restart(rid, r.(Rule))
+			if err == nil {
+				resp(c, true, nil, 200)
+			} else {
+				resp(c, false, err.Error(), 500)
+			}
+		} else {
+			resp(c, false, "rid doesn't exit", 500)
+		}
 	})
 	r.POST("/del", func(c *gin.Context) {
 		rid := c.PostForm("rid")
@@ -198,25 +224,22 @@ func checkKey(c *gin.Context) {
 	c.Next()
 }
 func getData(c *gin.Context) {
-	if syncing {
-		c.JSON(500, "syncing")
-	} else {
-		working := Rules.Items()
-		errs := make(map[string]Rule)
-		for t := range Svrs.Iter() {
-			svr := t.Val.(*relay.Relay)
-			failed := false
-			if svr.TCPListen == nil && working[t.Key].(Rule).Type != "udp" {
-				failed = true
-			}
-			if failed {
-				errs[t.Key] = working[t.Key].(Rule)
-				delete(working, t.Key)
-			}
+	working := Rules.Items()
+	errs := make(map[string]Rule)
+	for t := range Svrs.IterBuffered() {
+		svr := t.Val.(*relay.Relay)
+		failed := false
+		if svr.TCPListen == nil && working[t.Key].(Rule).Type != "udp" {
+			failed = true
 		}
-		c.JSON(200, gin.H{
-			"errors":  errs,
-			"working": working,
-		})
+		if failed {
+			errs[t.Key] = working[t.Key].(Rule)
+			delete(working, t.Key)
+		}
 	}
+	c.JSON(200, gin.H{
+		"syncing": syncing,
+		"errors":  errs,
+		"working": working,
+	})
 }

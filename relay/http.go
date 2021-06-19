@@ -6,10 +6,12 @@ import (
 )
 
 func (s *Relay) RunHttpServer(tls bool) error {
-	s.ListenTCP()
-	defer s.TCPListen.Close()
-	handler := http.NewServeMux()
+	err := s.ListenTCP()
+	if err != nil {
+		return err
+	}
 
+	handler := http.NewServeMux()
 	target := "http://" + s.Raddr
 	if tls {
 		target = "https://" + s.Raddr
@@ -21,10 +23,9 @@ func (s *Relay) RunHttpServer(tls bool) error {
 	handler.Handle("/", NewSingleHostReverseProxy(u, s))
 	s.Svr = &http.Server{Handler: handler}
 	if tls {
-		s.Svr.ServeTLS(s.TCPListen, Config.Certfile, Config.Keyfile)
+		go s.Svr.ServeTLS(s.TCPListen, Config.Certfile, Config.Keyfile)
 	} else {
-		s.Svr.Serve(s.TCPListen)
+		go s.Svr.Serve(s.TCPListen)
 	}
-	// defer svr.Shutdown(nil)
 	return nil
 }

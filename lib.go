@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"neko-relay/relay"
 	. "neko-relay/rules"
@@ -15,7 +16,6 @@ var (
 	Traffic = cmap.New()
 	Svrs    = cmap.New()
 	syncing = false
-	// used    = [65536]bool{}
 )
 
 func getTF(rid string) (tf *relay.TF) {
@@ -31,12 +31,6 @@ func getTF(rid string) (tf *relay.TF) {
 }
 
 func start(rid string, r Rule) (err error) {
-	// if used[r.Port] {
-	// 	s := strconv.Itoa(int(r.Port)) + "has been used"
-	// 	err = errors.New(s)
-	// 	return
-	// }
-	// used[r.Port] = true
 	svr, err := relay.NewRelay(r, 30, 10, getTF(rid), r.Type)
 	if err != nil {
 		return
@@ -50,10 +44,17 @@ func stop(rid string, r Rule) {
 	Svr, has := Svrs.Get(rid)
 	if has {
 		Svr.(*relay.Relay).Close()
-		time.Sleep(10 * time.Millisecond)
 		Svrs.Remove(rid)
 	}
-	// used[r.Rport] = false
+}
+func restart(rid string, r Rule) error {
+	Svr, has := Svrs.Get(rid)
+	if has {
+		Svr.(*relay.Relay).Close()
+		return Svr.(*relay.Relay).Serve()
+	} else {
+		return start(rid, r)
+	}
 }
 func cmp(x, y Rule) bool {
 	return x.Port == y.Port && x.Remote == y.Remote && x.Rport == y.Rport && x.Type == y.Type
@@ -62,12 +63,14 @@ func cmp(x, y Rule) bool {
 func sync(newRules map[string]Rule) {
 	if syncing {
 		return
+		// syncing = false
+		// time.Sleep(1000 * time.Millisecond)
 	}
 	syncing = true
 	if Config.Debug {
 		fmt.Println(newRules)
 	}
-	for item := range Rules.Iter() {
+	for item := range Rules.IterBuffered() {
 		rid := item.Key
 		rule, has := newRules[rid]
 		if has && cmp(rule, item.Val.(Rule)) {
@@ -79,6 +82,9 @@ func sync(newRules map[string]Rule) {
 		}
 	}
 	for rid, r := range newRules {
+		if !syncing {
+			return
+		}
 		if Config.Debug {
 			fmt.Println(r)
 		}
@@ -87,18 +93,30 @@ func sync(newRules map[string]Rule) {
 			continue
 		}
 		r.RIP = rip
-		pass, _ := check(r)
-		if !pass {
-			continue
+		err = check(r)
+		if err == nil {
+			Rules.Set(rid, r)
+			start(rid, r)
 		}
-		Rules.Set(rid, r)
-		start(rid, r)
 	}
 	syncing = false
 }
 
+var (
+	rsvr = &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			d := net.Dialer{
+				Timeout: time.Duration(10000) * time.Millisecond,
+			}
+			return d.DialContext(ctx, Config.Dns.Network, Config.Dns.Server+":53")
+		},
+	}
+)
+
 func getIP(host string) (string, error) {
-	ips, err := net.LookupHost(host)
+	ips, err := rsvr.LookupHost(context.Background(), host)
+	// ips, err := net.LookupHost(host)
 	if err != nil {
 		return "", err
 	}
@@ -111,7 +129,7 @@ func ddns() {
 		for syncing {
 			time.Sleep(100 * time.Millisecond)
 		}
-		for item := range Rules.Iter() {
+		for item := range Rules.IterBuffered() {
 			rid, r := item.Key, item.Val.(Rule)
 			RIP, err := getIP(r.Remote)
 			if err == nil && RIP != r.RIP {

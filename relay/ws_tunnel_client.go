@@ -8,9 +8,11 @@ import (
 )
 
 func (s *Relay) RunWsTunnelTcpClient() error {
-	s.ListenTCP()
-	defer s.TCPListen.Close()
-	s.AcceptAndHandleTCP(s.WsTunnelClientTcpHandle)
+	err := s.ListenTCP()
+	if err != nil {
+		return err
+	}
+	go s.AcceptAndHandleTCP(s.WsTunnelClientTcpHandle)
 	return nil
 }
 

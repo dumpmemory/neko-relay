@@ -9,13 +9,16 @@ import (
 )
 
 func (s *Relay) RunWssTunnelTcpClient() error {
-	s.ListenTCP()
-	defer s.TCPListen.Close()
-	s.AcceptAndHandleTCP(s.WssTunnelClientTcpHandle)
+	err := s.ListenTCP()
+	if err != nil {
+		return err
+	}
+	go s.AcceptAndHandleTCP(s.WssTunnelClientTcpHandle)
 	return nil
 }
 
 func (s *Relay) WssTunnelClientTcpHandle(c *net.TCPConn) error {
+	defer c.Close()
 	ws_config, err := websocket.NewConfig("wss://"+s.Raddr+"/wstcp/", "https://"+s.Raddr+"/wstcp/")
 	if err != nil {
 		return err
@@ -41,9 +44,11 @@ func (s *Relay) WssTunnelClientTcpHandle(c *net.TCPConn) error {
 }
 
 func (s *Relay) RunWssTunnelUdpClient() error {
-	s.ListenUDP()
-	defer s.UDPConn.Close()
-	s.AcceptAndHandleUDP(s.WssTunnelClientUdpHandle)
+	err := s.ListenUDP()
+	if err != nil {
+		return err
+	}
+	go s.AcceptAndHandleUDP(s.WssTunnelClientUdpHandle)
 	return nil
 }
 

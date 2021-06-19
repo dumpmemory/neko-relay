@@ -9,8 +9,10 @@ import (
 )
 
 func (s *Relay) RunWssTunnelServer(tcp, udp bool) error {
-	s.ListenTCP()
-	defer s.TCPListen.Close()
+	err := s.ListenTCP()
+	if err != nil {
+		return err
+	}
 	handler := http.NewServeMux()
 	if tcp {
 		handler.Handle("/wstcp/", websocket.Handler(s.WssTunnelServerTcpHandle))
@@ -20,8 +22,7 @@ func (s *Relay) RunWssTunnelServer(tcp, udp bool) error {
 	}
 	handler.Handle("/", NewRP(Config.Fakeurl, Config.Fakehost))
 	s.Svr = &http.Server{Handler: handler}
-	s.Svr.ServeTLS(s.TCPListen, Config.Certfile, Config.Keyfile)
-	defer s.Svr.Shutdown(nil)
+	go s.Svr.ServeTLS(s.TCPListen, Config.Certfile, Config.Keyfile)
 	return nil
 }
 func (s *Relay) WssTunnelServerTcpHandle(ws *websocket.Conn) {
@@ -36,7 +37,6 @@ func (s *Relay) WssTunnelServerTcpHandle(ws *websocket.Conn) {
 	defer rc.Close()
 	go Copy(rc, ws, s)
 	Copy(ws, rc, s)
-	return
 }
 
 func (s *Relay) WssTunnelServerUdpHandle(ws *websocket.Conn) {
@@ -51,5 +51,4 @@ func (s *Relay) WssTunnelServerUdpHandle(ws *websocket.Conn) {
 
 	go Copy(rc, ws, s)
 	Copy(ws, rc, s)
-	return
 }

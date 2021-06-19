@@ -7,41 +7,43 @@ import (
 )
 
 func (s *Relay) ListenTCP() (err error) {
-	wait := 2.0
-	for s.Status && s.TCPListen == nil {
-		s.TCPListen, err = net.ListenTCP("tcp", s.TCPAddr)
-		if err != nil {
-			fmt.Println("Listen TCP", s.Laddr, err, "(retry in", wait, "s)")
-			time.Sleep(time.Duration(wait) * time.Second)
-			wait *= 1.1
-		}
+	s.TCPListen, err = net.ListenTCP("tcp", s.TCPAddr)
+	if err != nil {
+		fmt.Println("Listen TCP", s.Laddr, err)
 	}
 	return
 }
 
 func (s *Relay) AcceptAndHandleTCP(handle func(c *net.TCPConn) error) error {
 	wait := 1.0
-	for s.Status && s.TCPListen != nil {
-		c, err := s.TCPListen.AcceptTCP()
-		if err == nil {
-			go handle(c)
-			wait = 1.0
-		} else {
-			fmt.Println("Accept", s.Laddr, err)
-			if err, ok := err.(net.Error); ok && err.Temporary() {
-				continue
+	for s.TCPListen != nil {
+		select {
+		case <-s.StopCh:
+			return nil
+		default:
+			c, err := s.TCPListen.AcceptTCP()
+			if err == nil {
+				go handle(c)
+				wait = 1.0
+			} else {
+				fmt.Println("Accept", s.Laddr, err)
+				if err, ok := err.(net.Error); ok && err.Temporary() {
+					continue
+				}
+				time.Sleep(time.Duration(wait) * time.Second)
+				wait *= 1.1
 			}
-			time.Sleep(time.Duration(wait) * time.Second)
-			wait *= 1.1
 		}
 	}
 	return nil
 }
 
 func (s *Relay) RunTCPServer() error {
-	s.ListenTCP()
-	defer s.TCPListen.Close()
-	s.AcceptAndHandleTCP(s.TCPHandle)
+	err := s.ListenTCP()
+	if err != nil {
+		return err
+	}
+	go s.AcceptAndHandleTCP(s.TCPHandle)
 	return nil
 }
 

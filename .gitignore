@@ -1,4 +1,4 @@
 neko-relay
 *.key
 *.pem
-rules.json
+*.json

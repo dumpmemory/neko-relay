@@ -24,45 +24,45 @@ func NewUDPDistribute(conn *(net.UDPConn), addr net.Addr) *UDPDistribute {
 	}
 }
 
-func (this *UDPDistribute) Close() error {
-	this.Connected = false
-	return this.Conn.Close()
+func (th *UDPDistribute) Close() error {
+	th.Connected = false
+	return th.Conn.Close()
 	// return nil
 }
 
-func (this *UDPDistribute) Read(b []byte) (n int, err error) {
-	if !this.Connected {
+func (th *UDPDistribute) Read(b []byte) (n int, err error) {
+	if !th.Connected {
 		return 0, errors.New("udp conn has been closed")
 	}
 	select {
 	case <-time.After(16 * time.Second):
 		return 0, errors.New("i/o read timeout")
-	case data := <-this.Cache:
+	case data := <-th.Cache:
 		n := len(data)
 		copy(b, data)
 		return n, nil
 	}
 }
 
-func (this *UDPDistribute) Write(b []byte) (int, error) {
-	if !this.Connected {
+func (th *UDPDistribute) Write(b []byte) (int, error) {
+	if !th.Connected {
 		return 0, errors.New("udp conn has been closed")
 	}
-	return this.Conn.WriteTo(b, this.RAddr)
+	return th.Conn.WriteTo(b, th.RAddr)
 }
 
-func (this *UDPDistribute) RemoteAddr() net.Addr {
-	return this.RAddr
+func (th *UDPDistribute) RemoteAddr() net.Addr {
+	return th.RAddr
 }
-func (this *UDPDistribute) LocalAddr() net.Addr {
-	return this.LAddr
+func (th *UDPDistribute) LocalAddr() net.Addr {
+	return th.LAddr
 }
-func (this *UDPDistribute) SetDeadline(t time.Time) error {
-	return this.Conn.SetDeadline(t)
+func (th *UDPDistribute) SetDeadline(t time.Time) error {
+	return th.Conn.SetDeadline(t)
 }
-func (this *UDPDistribute) SetReadDeadline(t time.Time) error {
-	return this.Conn.SetReadDeadline(t)
+func (th *UDPDistribute) SetReadDeadline(t time.Time) error {
+	return th.Conn.SetReadDeadline(t)
 }
-func (this *UDPDistribute) SetWriteDeadline(t time.Time) error {
-	return this.Conn.SetWriteDeadline(t)
+func (th *UDPDistribute) SetWriteDeadline(t time.Time) error {
+	return th.Conn.SetWriteDeadline(t)
 }
