@@ -43,9 +43,11 @@ func (s *Relay) WsTunnelClientTcpHandle(c *net.TCPConn) error {
 }
 
 func (s *Relay) RunWsTunnelUdpClient() error {
-	s.ListenUDP()
-	defer s.UDPConn.Close()
-	s.AcceptAndHandleUDP(s.WsTunnelClientUdpHandle)
+	err := s.ListenUDP()
+	if err != nil {
+		return err
+	}
+	go s.AcceptAndHandleUDP(s.WsTunnelClientUdpHandle)
 	return nil
 }
 
