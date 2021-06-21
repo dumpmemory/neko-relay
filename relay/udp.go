@@ -17,7 +17,7 @@ func (s *Relay) AcceptAndHandleUDP(handle func(c net.Conn) error) error {
 	wait := 1.0
 	table := make(map[string]*UDPDistribute)
 	buf := make([]byte, 1024*16)
-	for s.UDPConn != nil {
+	for {
 		select {
 		case <-s.StopCh:
 			return nil

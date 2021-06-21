@@ -16,7 +16,7 @@ func (s *Relay) ListenTCP() (err error) {
 
 func (s *Relay) AcceptAndHandleTCP(handle func(c *net.TCPConn) error) error {
 	wait := 1.0
-	for s.TCPListen != nil {
+	for {
 		select {
 		case <-s.StopCh:
 			return nil
