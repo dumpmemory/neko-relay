@@ -3,22 +3,32 @@ package relay
 import (
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"golang.org/x/net/websocket"
 )
 
 func (s *Relay) RunWssTunnelServer(tcp, udp bool) error {
+	if Config.Tsp.Wss > 0 {
+		if tcp {
+			WssMuxTunnelServer.AddHandler("/wss/tcp/"+s.RID+"/", websocket.Handler(s.WsTunnelServerTcpHandle))
+		}
+		if udp {
+			WssMuxTunnelServer.AddHandler("/wss/udp/"+s.RID+"/", websocket.Handler(s.WsTunnelServerUdpHandle))
+		}
+		return nil
+	}
 	err := s.ListenTCP()
 	if err != nil {
 		return err
 	}
 	handler := http.NewServeMux()
 	if tcp {
-		handler.Handle("/wstcp/", websocket.Handler(s.WssTunnelServerTcpHandle))
+		handler.Handle("/wss/tcp/"+s.RID+"/", websocket.Handler(s.WssTunnelServerTcpHandle))
 	}
 	if udp {
-		handler.Handle("/wsudp/", websocket.Handler(s.WssTunnelServerUdpHandle))
+		handler.Handle("/wss/udp/"+s.RID+"/", websocket.Handler(s.WssTunnelServerUdpHandle))
 	}
 	handler.Handle("/", NewRP(Config.Fakeurl, Config.Fakehost))
 	s.Svr = &http.Server{Handler: handler}
@@ -51,4 +61,9 @@ func (s *Relay) WssTunnelServerUdpHandle(ws *websocket.Conn) {
 
 	go Copy(rc, ws, s)
 	Copy(ws, rc, s)
+}
+
+var WssMuxTunnelServer = &TunnelServer{
+	mu:       new(sync.RWMutex),
+	Handlers: make(map[string]http.Handler),
 }

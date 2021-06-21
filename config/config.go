@@ -19,8 +19,8 @@ type CONF struct {
 	}
 
 	Tsp struct {
-		ws  int
-		wss int
-		h2  int
+		Ws  int
+		Wss int
+		H2  int
 	}
 }

@@ -18,7 +18,7 @@ func (s *Relay) RunWsTunnelTcpClient() error {
 
 func (s *Relay) WsTunnelClientTcpHandle(c *net.TCPConn) error {
 	defer c.Close()
-	ws_config, err := websocket.NewConfig("ws://"+s.Raddr+"/wstcp/"+s.RID+"/", "http://"+s.Raddr+"/wstcp/"+s.RID+"/")
+	ws_config, err := websocket.NewConfig("ws://"+s.Raddr+"/ws/tcp/"+s.RID+"/", "http://"+s.Raddr+"/ws/tcp/"+s.RID+"/")
 	if err != nil {
 		fmt.Println("WS Config", s.Raddr, err)
 		return err
@@ -51,7 +51,7 @@ func (s *Relay) RunWsTunnelUdpClient() error {
 
 func (s *Relay) WsTunnelClientUdpHandle(c net.Conn) error {
 	defer c.Close()
-	ws_config, err := websocket.NewConfig("ws://"+s.Raddr+"/wsudp/"+s.RID+"/", "http://"+s.Raddr+"/wsudp/"+s.RID+"/")
+	ws_config, err := websocket.NewConfig("ws://"+s.Raddr+"/ws/udp/"+s.RID+"/", "http://"+s.Raddr+"/ws/udp/"+s.RID+"/")
 	if err != nil {
 		fmt.Println("WS Config", s.Raddr, err)
 		return err

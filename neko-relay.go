@@ -84,7 +84,7 @@ func main() {
 		fmt.Println("TCP & UDP & WS TUNNEL & WSS TUNNEL & HTTP & HTTPS & STAT")
 		return
 	}
-	if Config.Debug {
+	if !Debug {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	relay.Config = Config
@@ -203,6 +203,12 @@ func main() {
 	r.Run(":" + strconv.Itoa(Config.Port))
 }
 func Init() {
+	if Config.Tsp.Ws != 0 {
+		relay.WsMuxTunnelServer.ListenAndServe(Config.Tsp.Ws)
+	}
+	if Config.Tsp.Wss != 0 {
+		relay.WssMuxTunnelServer.ListenAndServe(Config.Tsp.Wss)
+	}
 	if Config.Syncfile != "" {
 		data, err := ioutil.ReadFile(Config.Syncfile)
 		if err == nil {
