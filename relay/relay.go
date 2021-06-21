@@ -203,7 +203,9 @@ func Copy_io(dst io.Writer, src io.Reader, s *Relay) error {
 			if err != nil {
 				return err
 			}
-			s.Traffic.Add(uint64(n))
+			if s != nil {
+				s.Traffic.Add(uint64(n))
+			}
 			if _, err := dst.Write(buf[0:n]); err != nil {
 				return err
 			}
