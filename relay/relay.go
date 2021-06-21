@@ -108,14 +108,14 @@ func (s *Relay) Serve() error {
 		return s.RunWssTunnelServer(true, false)
 	} else if s.Protocol == "wss_tunnel_server_udp" {
 		return s.RunWssTunnelServer(false, true)
-	} else if s.Protocol == "wss_tunnel_server" {
+	} else if s.Protocol == "wss_tunnel_server_tcp+udp" || s.Protocol == "wss_tunnel_server" {
 		return s.RunWssTunnelServer(true, true)
 
 	} else if s.Protocol == "wss_tunnel_client_tcp" {
 		return s.RunWssTunnelTcpClient()
 	} else if s.Protocol == "wss_tunnel_client_udp" {
 		return s.RunWssTunnelUdpClient()
-	} else if s.Protocol == "wss_tunnel_client" {
+	} else if s.Protocol == "wss_tunnel_client_tcp+udp" || s.Protocol == "wss_tunnel_client" {
 		if err := s.RunWssTunnelTcpClient(); err != nil {
 			return err
 		}
@@ -125,14 +125,14 @@ func (s *Relay) Serve() error {
 		return s.RunH2TunnelServer(true, false)
 	} else if s.Protocol == "h2_tunnel_server_udp" {
 		return s.RunH2TunnelServer(false, true)
-	} else if s.Protocol == "h2_tunnel_server" {
+	} else if s.Protocol == "h2_tunnel_server_tcp+udp" || s.Protocol == "h2_tunnel_server" {
 		return s.RunH2TunnelServer(true, true)
 
 	} else if s.Protocol == "h2_tunnel_client_tcp" {
 		return s.RunH2TunnelTcpClient()
 	} else if s.Protocol == "h2_tunnel_client_udp" {
 		return s.RunH2TunnelUdpClient()
-	} else if s.Protocol == "h2_tunnel_client" {
+	} else if s.Protocol == "h2_tunnel_client_tcp+udp" || s.Protocol == "h2_tunnel_client" {
 		if err := s.RunH2TunnelTcpClient(); err != nil {
 			return err
 		}
@@ -142,7 +142,10 @@ func (s *Relay) Serve() error {
 }
 
 func (s *Relay) OK() (bool, error) {
-	if (strings.Contains(s.Protocol, "tcp") || strings.Contains(s.Protocol, "tunnel_server")) && (s.TCPListen == nil) {
+	if strings.Contains(s.Protocol, "tcp") && (s.TCPListen == nil) {
+		return false, errors.New("tcp listen is null")
+	}
+	if strings.Contains(s.Protocol, "udp") && (s.TCPListen == nil) {
 		return false, errors.New("tcp listen is null")
 	}
 	return true, nil
@@ -191,7 +194,7 @@ func Copy_io(dst io.Writer, src io.Reader, s *Relay) error {
 	// return nil
 	buf := Pool.Get().([]byte)
 	defer Pool.Put(buf)
-	for dst != nil && src != nil && s.Traffic != nil {
+	for {
 		select {
 		case <-s.StopCh:
 			return nil

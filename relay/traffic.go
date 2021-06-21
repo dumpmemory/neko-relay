@@ -10,12 +10,15 @@ type TF struct {
 }
 
 func NewTF() *TF {
-	return &TF{Counter: 0, RW: new(sync.RWMutex)}
+	return &TF{
+		Counter: 0,
+		RW:      new(sync.RWMutex),
+	}
 }
 func (tf *TF) Add(val uint64) {
 	tf.RW.Lock()
+	defer tf.RW.Unlock()
 	tf.Counter += val
-	tf.RW.Unlock()
 }
 func (tf *TF) Total() uint64 {
 	tf.RW.RLock()
@@ -24,6 +27,6 @@ func (tf *TF) Total() uint64 {
 }
 func (tf *TF) Reset() {
 	tf.RW.Lock()
+	defer tf.RW.Unlock()
 	tf.Counter = 0
-	tf.RW.Unlock()
 }
