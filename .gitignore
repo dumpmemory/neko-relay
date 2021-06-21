@@ -2,3 +2,4 @@ neko-relay
 *.key
 *.pem
 *.json
+*.yaml
