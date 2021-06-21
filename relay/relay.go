@@ -211,5 +211,4 @@ func Copy_io(dst io.Writer, src io.Reader, s *Relay) error {
 			}
 		}
 	}
-	return nil
 }
