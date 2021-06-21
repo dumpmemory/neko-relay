@@ -30,7 +30,7 @@ func (s *Relay) RunWssTunnelServer(tcp, udp bool) error {
 	if udp {
 		handler.Handle("/wss/udp/"+s.RID+"/", websocket.Handler(s.WssTunnelServerUdpHandle))
 	}
-	handler.Handle("/", NewRP(Config.Fakeurl, Config.Fakehost))
+	handler.Handle("/", NewRP(Config.Fake.Url, Config.Fake.Host))
 	s.Svr = &http.Server{Handler: handler}
 	go s.Svr.ServeTLS(s.TCPListen, Config.Certfile, Config.Keyfile)
 	return nil
@@ -66,4 +66,5 @@ func (s *Relay) WssTunnelServerUdpHandle(ws *websocket.Conn) {
 var WssMuxTunnelServer = &TunnelServer{
 	mu:       new(sync.RWMutex),
 	Handlers: make(map[string]http.Handler),
+	RP:       NewRP(Config.Fake.Url, Config.Fake.Host),
 }

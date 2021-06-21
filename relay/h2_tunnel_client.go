@@ -25,7 +25,7 @@ func (s *Relay) H2TunnelClientTcpHandle(c *net.TCPConn) error {
 	}
 	ws_config.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36")
 	ws_config.Header.Set("X-Forward-For", s.RIP)
-	ws_config.Header.Set("X-Forward-Host", Config.Fakehost)
+	ws_config.Header.Set("X-Forward-Host", Config.Fake.Host)
 	ws_config.Header.Set("X-Forward-Protocol", c.RemoteAddr().Network())
 	ws_config.Header.Set("X-Forward-Address", c.RemoteAddr().String())
 
@@ -60,7 +60,7 @@ func (s *Relay) H2TunnelClientUdpHandle(c net.Conn) error {
 	}
 	ws_config.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4240.198 Safari/537.36")
 	ws_config.Header.Set("X-Forward-For", s.RIP)
-	ws_config.Header.Set("X-Forward-Host", Config.Fakehost)
+	ws_config.Header.Set("X-Forward-Host", Config.Fake.Host)
 	ws_config.Header.Set("X-Forward-Protocol", c.RemoteAddr().Network())
 	ws_config.Header.Set("X-Forward-Address", c.RemoteAddr().String())
 

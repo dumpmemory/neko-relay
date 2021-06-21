@@ -10,9 +10,6 @@ type CONF struct {
 
 	Syncfile string
 
-	Fakehost string
-	Fakeurl  string
-
 	Dns struct {
 		Server  string
 		Network string
@@ -22,5 +19,11 @@ type CONF struct {
 		Ws  int
 		Wss int
 		H2  int
+	}
+
+	Fake struct {
+		Host    string
+		Url     string
+		Headers map[string]string
 	}
 }

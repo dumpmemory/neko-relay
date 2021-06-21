@@ -21,7 +21,7 @@ func (s *Relay) RunH2TunnelServer(tcp, udp bool) error {
 	if udp {
 		handler.Handle("/wsudp/", websocket.Handler(s.H2TunnelServerUdpHandle))
 	}
-	handler.Handle("/", NewRP(Config.Fakeurl, Config.Fakehost))
+	handler.Handle("/", NewRP(Config.Fake.Url, Config.Fake.Host))
 
 	s.Svr = &http.Server{Handler: handler}
 	go s.Svr.Serve(s.TCPListen)

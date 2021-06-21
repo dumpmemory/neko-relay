@@ -33,7 +33,7 @@ func (s *Relay) RunWsTunnelServer(tcp, udp bool) error {
 	if udp {
 		handler.Handle("/ws/udp/"+s.RID+"/", websocket.Handler(s.WsTunnelServerUdpHandle))
 	}
-	handler.Handle("/", NewRP(Config.Fakeurl, Config.Fakehost))
+	handler.Handle("/", NewRP(Config.Fake.Url, Config.Fake.Host))
 
 	s.Svr = &http.Server{Handler: handler}
 	go s.Svr.Serve(s.TCPListen)
@@ -77,6 +77,7 @@ type TunnelServer struct {
 var WsMuxTunnelServer = &TunnelServer{
 	mu:       new(sync.RWMutex),
 	Handlers: make(map[string]http.Handler),
+	RP:       NewRP(Config.Fake.Url, Config.Fake.Host),
 }
 
 func (S *TunnelServer) AddHandler(pattern string, handler http.Handler) error {
@@ -101,9 +102,16 @@ func (S *TunnelServer) DelHandler(pattern string) error {
 	return nil
 }
 
+func setHeader(w http.ResponseWriter) {
+	for key, val := range Config.Fake.Headers {
+		w.Header().Set(key, val)
+	}
+}
+
 func (S *TunnelServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler, has := S.Handlers[r.URL.Path]
 	if has {
+		setHeader(w)
 		handler.ServeHTTP(w, r)
 	} else {
 		S.RP.ServeHTTP(w, r)
