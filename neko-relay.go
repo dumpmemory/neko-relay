@@ -227,12 +227,8 @@ func getData(c *gin.Context) {
 	working := Rules.Items()
 	errs := make(map[string]Rule)
 	for t := range Svrs.IterBuffered() {
-		svr := t.Val.(*relay.Relay)
-		failed := false
-		if svr.TCPListen == nil && working[t.Key].(Rule).Type != "udp" {
-			failed = true
-		}
-		if failed {
+		ok, _ := t.Val.(*relay.Relay).OK()
+		if !ok {
 			errs[t.Key] = working[t.Key].(Rule)
 			delete(working, t.Key)
 		}

@@ -2,6 +2,7 @@ package relay
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log"
 	"neko-relay/config"
@@ -10,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,6 +21,7 @@ var (
 )
 
 type Relay struct {
+	RID        string
 	TCPAddr    *net.TCPAddr
 	UDPAddr    *net.UDPAddr
 	TCPListen  *net.TCPListener
@@ -36,7 +39,7 @@ type Relay struct {
 	StopCh     chan struct{}
 }
 
-func NewRelay(r Rule, tcpTimeout, udpTimeout int, traffic *TF, protocol string) (*Relay, error) {
+func NewRelay(rid string, r Rule, tcpTimeout, udpTimeout int, traffic *TF, protocol string) (*Relay, error) {
 	laddr := ":" + strconv.Itoa(int(r.Port))
 	raddr := r.RIP + ":" + strconv.Itoa(int(r.Rport))
 	taddr, err := net.ResolveTCPAddr("tcp", laddr)
@@ -51,6 +54,7 @@ func NewRelay(r Rule, tcpTimeout, udpTimeout int, traffic *TF, protocol string) 
 		log.Println("Try to raise system limits, got", err)
 	}
 	s := &Relay{
+		RID:        rid,
 		TCPAddr:    taddr,
 		UDPAddr:    uaddr,
 		TCPTimeout: tcpTimeout,
@@ -66,44 +70,82 @@ func NewRelay(r Rule, tcpTimeout, udpTimeout int, traffic *TF, protocol string) 
 }
 
 // Run server.
-func (s *Relay) Serve() (err error) {
+func (s *Relay) Serve() error {
 	s.StopCh = make(chan struct{}, 16)
-	if s.Protocol == "tcp" || s.Protocol == "tcp+udp" {
-		if err = s.RunTCPServer(); err != nil {
-			return
+	if s.Protocol == "tcp" {
+		return s.RunTCPServer()
+	} else if s.Protocol == "udp" {
+		return s.RunUDPServer()
+	} else if s.Protocol == "tcp+udp" {
+		if err := s.RunTCPServer(); err != nil {
+			return err
 		}
-	}
-	if s.Protocol == "udp" || s.Protocol == "tcp+udp" {
-		if err = s.RunUDPServer(); err != nil {
-			return
-		}
-	}
-	if s.Protocol == "http" {
+		return s.RunUDPServer()
+
+	} else if s.Protocol == "http" {
 		return s.RunHttpServer(false)
-	}
-	if s.Protocol == "https" {
+	} else if s.Protocol == "https" {
 		return s.RunHttpServer(true)
-	}
-	if s.Protocol == "ws_tunnel_server" {
+
+	} else if s.Protocol == "ws_tunnel_server_tcp" {
+		return s.RunWsTunnelServer(true, false)
+	} else if s.Protocol == "ws_tunnel_server_udp" {
+		return s.RunWsTunnelServer(false, true)
+	} else if s.Protocol == "ws_tunnel_server" {
 		return s.RunWsTunnelServer(true, true)
-	}
-	if s.Protocol == "ws_tunnel_client" {
-		if err = s.RunWsTunnelTcpClient(); err != nil {
-			return
+
+	} else if s.Protocol == "ws_tunnel_client_tcp" {
+		return s.RunWsTunnelTcpClient()
+	} else if s.Protocol == "ws_tunnel_client_udp" {
+		return s.RunWsTunnelUdpClient()
+	} else if s.Protocol == "ws_tunnel_client" {
+		if err := s.RunWsTunnelTcpClient(); err != nil {
+			return err
 		}
 		return s.RunWsTunnelUdpClient()
-	}
 
-	if s.Protocol == "wss_tunnel_server" {
+	} else if s.Protocol == "wss_tunnel_server_tcp" {
+		return s.RunWssTunnelServer(true, false)
+	} else if s.Protocol == "wss_tunnel_server_udp" {
+		return s.RunWssTunnelServer(false, true)
+	} else if s.Protocol == "wss_tunnel_server" {
 		return s.RunWssTunnelServer(true, true)
-	}
-	if s.Protocol == "wss_tunnel_client" {
-		if err = s.RunWssTunnelTcpClient(); err != nil {
-			return
-		}
+
+	} else if s.Protocol == "wss_tunnel_client_tcp" {
+		return s.RunWssTunnelTcpClient()
+	} else if s.Protocol == "wss_tunnel_client_udp" {
 		return s.RunWssTunnelUdpClient()
+	} else if s.Protocol == "wss_tunnel_client" {
+		if err := s.RunWssTunnelTcpClient(); err != nil {
+			return err
+		}
+		return s.RunWsTunnelUdpClient()
+
+	} else if s.Protocol == "h2_tunnel_server_tcp" {
+		return s.RunH2TunnelServer(true, false)
+	} else if s.Protocol == "h2_tunnel_server_udp" {
+		return s.RunH2TunnelServer(false, true)
+	} else if s.Protocol == "h2_tunnel_server" {
+		return s.RunH2TunnelServer(true, true)
+
+	} else if s.Protocol == "h2_tunnel_client_tcp" {
+		return s.RunH2TunnelTcpClient()
+	} else if s.Protocol == "h2_tunnel_client_udp" {
+		return s.RunH2TunnelUdpClient()
+	} else if s.Protocol == "h2_tunnel_client" {
+		if err := s.RunH2TunnelTcpClient(); err != nil {
+			return err
+		}
+		return s.RunH2TunnelUdpClient()
 	}
 	return nil
+}
+
+func (s *Relay) OK() (bool, error) {
+	if (strings.Contains(s.Protocol, "tcp") || strings.Contains(s.Protocol, "tunnel_server")) && (s.TCPListen == nil) {
+		return false, errors.New("tcp listen is null")
+	}
+	return true, nil
 }
 
 // Shutdown server.

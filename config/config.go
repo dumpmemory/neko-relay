@@ -17,4 +17,10 @@ type CONF struct {
 		Server  string
 		Network string
 	}
+
+	Tsp struct {
+		ws  int
+		wss int
+		h2  int
+	}
 }

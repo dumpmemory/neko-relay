@@ -7,18 +7,18 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-func (s *Relay) RunWsTunnelTcpClient() error {
+func (s *Relay) RunH2TunnelTcpClient() error {
 	err := s.ListenTCP()
 	if err != nil {
 		return err
 	}
-	go s.AcceptAndHandleTCP(s.WsTunnelClientTcpHandle)
+	go s.AcceptAndHandleTCP(s.H2TunnelClientTcpHandle)
 	return nil
 }
 
-func (s *Relay) WsTunnelClientTcpHandle(c *net.TCPConn) error {
+func (s *Relay) H2TunnelClientTcpHandle(c *net.TCPConn) error {
 	defer c.Close()
-	ws_config, err := websocket.NewConfig("ws://"+s.Raddr+"/wstcp/"+s.RID+"/", "http://"+s.Raddr+"/wstcp/"+s.RID+"/")
+	ws_config, err := websocket.NewConfig("ws://"+s.Raddr+"/wstcp/", "http://"+s.Raddr+"/wstcp/")
 	if err != nil {
 		fmt.Println("WS Config", s.Raddr, err)
 		return err
@@ -42,16 +42,18 @@ func (s *Relay) WsTunnelClientTcpHandle(c *net.TCPConn) error {
 	return nil
 }
 
-func (s *Relay) RunWsTunnelUdpClient() error {
-	s.ListenUDP()
-	defer s.UDPConn.Close()
-	s.AcceptAndHandleUDP(s.WsTunnelClientUdpHandle)
+func (s *Relay) RunH2TunnelUdpClient() error {
+	err := s.ListenUDP()
+	if err != nil {
+		return err
+	}
+	go s.AcceptAndHandleUDP(s.H2TunnelClientUdpHandle)
 	return nil
 }
 
-func (s *Relay) WsTunnelClientUdpHandle(c net.Conn) error {
+func (s *Relay) H2TunnelClientUdpHandle(c net.Conn) error {
 	defer c.Close()
-	ws_config, err := websocket.NewConfig("ws://"+s.Raddr+"/wsudp/"+s.RID+"/", "http://"+s.Raddr+"/wsudp/"+s.RID+"/")
+	ws_config, err := websocket.NewConfig("ws://"+s.Raddr+"/wsudp/", "http://"+s.Raddr+"/wsudp/")
 	if err != nil {
 		fmt.Println("WS Config", s.Raddr, err)
 		return err

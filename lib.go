@@ -31,12 +31,15 @@ func getTF(rid string) (tf *relay.TF) {
 }
 
 func start(rid string, r Rule) (err error) {
-	svr, err := relay.NewRelay(r, 30, 10, getTF(rid), r.Type)
+	svr, err := relay.NewRelay(rid, r, 30, 10, getTF(rid), r.Type)
 	if err != nil {
 		return
 	}
 	Svrs.Set(rid, svr)
-	svr.Serve()
+	err = svr.Serve()
+	if err != nil {
+		return
+	}
 	time.Sleep(5 * time.Millisecond)
 	return
 }
