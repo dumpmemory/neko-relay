@@ -160,12 +160,11 @@ func (s *Relay) Close() error {
 	time.Sleep(5 * time.Millisecond)
 	if s.TCPListen != nil {
 		s.TCPListen.Close()
-		s.TCPListen = nil
 	}
 	if s.UDPConn != nil {
 		s.UDPConn.Close()
-		s.UDPConn = nil
 	}
+	time.Sleep(5 * time.Millisecond)
 	return nil
 }
 

@@ -63,6 +63,7 @@ func main() {
 
 	flag.StringVar(&Config.Dns.Nameserver, "dns_nameserver", "", "dns nameserver")
 	flag.StringVar(&Config.Dns.Network, "dns_network", "", "dns network (udp/tcp)")
+	flag.IntVar(&Config.Dns.Timeout, "dns_timeout", 2000, "dns timeout (ms)")
 
 	flag.StringVar(&Config.Fake.Host, "fake_host", "", "fake host")
 	flag.StringVar(&Config.Fake.Host, "fake_url", "", "fake url")
@@ -83,8 +84,8 @@ func main() {
 	}
 	Config.Debug = Debug
 	if show_version {
-		fmt.Println("neko-relay v1.4.3")
-		fmt.Println("TCP & UDP & WS TUNNEL & WSS TUNNEL & HTTP & HTTPS & STAT")
+		fmt.Println("neko-relay v1.4.4")
+		fmt.Println("TCP & UDP & WS TUNNEL & WSS TUNNEL & Tunnel Mux & HTTP & HTTPS & STAT")
 		return
 	}
 	if !Debug {

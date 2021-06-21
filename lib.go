@@ -43,7 +43,6 @@ func start(rid string, r Rule) (err error) {
 	if err != nil {
 		return
 	}
-	time.Sleep(5 * time.Millisecond)
 	return
 }
 func stop(rid string, r Rule) {
@@ -68,9 +67,9 @@ func cmp(x, y Rule) bool {
 
 func sync(newRules map[string]Rule) {
 	if syncing {
-		return
-		// syncing = false
-		// time.Sleep(1000 * time.Millisecond)
+		// return
+		syncing = false
+		time.Sleep(time.Duration(Config.Dns.Timeout+10) * time.Millisecond)
 	}
 	syncing = true
 	if Config.Debug {
@@ -143,7 +142,7 @@ func Init() {
 			PreferGo: true,
 			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 				d := net.Dialer{
-					Timeout: time.Duration(10000) * time.Millisecond,
+					Timeout: time.Duration(Config.Dns.Timeout) * time.Millisecond,
 				}
 				return d.DialContext(ctx, Config.Dns.Network, Config.Dns.Nameserver+":53")
 			},

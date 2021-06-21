@@ -15,6 +15,7 @@ type CONF struct {
 	Dns struct {
 		Nameserver string
 		Network    string
+		Timeout    int
 	}
 
 	Tsp struct {
