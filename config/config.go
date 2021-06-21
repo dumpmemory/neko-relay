@@ -5,14 +5,16 @@ type CONF struct {
 	Port  int
 	Debug bool
 
-	Certfile string
-	Keyfile  string
+	Tls struct {
+		Cert string
+		Key  string
+	}
 
 	Syncfile string
 
 	Dns struct {
-		Server  string
-		Network string
+		Nameserver string
+		Network    string
 	}
 
 	Tsp struct {

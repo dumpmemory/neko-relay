@@ -23,7 +23,7 @@ func (s *Relay) RunHttpServer(tls bool) error {
 	handler.Handle("/", NewSingleHostReverseProxy(u, s))
 	s.Svr = &http.Server{Handler: handler}
 	if tls {
-		go s.Svr.ServeTLS(s.TCPListen, Config.Certfile, Config.Keyfile)
+		go s.Svr.ServeTLS(s.TCPListen, Config.Tls.Cert, Config.Tls.Key)
 	} else {
 		go s.Svr.Serve(s.TCPListen)
 	}

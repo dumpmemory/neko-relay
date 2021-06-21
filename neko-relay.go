@@ -57,12 +57,15 @@ func main() {
 	flag.StringVar(&confpath, "c", "", "config")
 	flag.StringVar(&Config.Key, "key", "", "api key")
 	flag.IntVar(&Config.Port, "port", 8080, "api port")
-	flag.StringVar(&Config.Certfile, "certfile", "public.pem", "cert file")
-	flag.StringVar(&Config.Keyfile, "keyfile", "private.key", "key file")
-	flag.StringVar(&Config.Syncfile, "syncfile", "", "sync file")
 
-	// flag.StringVar(&Config.Dns.Server, "dns_server", "", "dns server")
-	// flag.StringVar(&Config.Dns.Network, "dns_network", "", "dns network (udp/tcp)")
+	flag.StringVar(&Config.Tls.Cert, "tls_cert", "public.pem", "cert file")
+	flag.StringVar(&Config.Tls.Key, "tls_key", "private.key", "key file")
+
+	flag.StringVar(&Config.Dns.Nameserver, "dns_nameserver", "", "dns nameserver")
+	flag.StringVar(&Config.Dns.Network, "dns_network", "", "dns network (udp/tcp)")
+
+	flag.StringVar(&Config.Fake.Host, "fake_host", "", "fake host")
+	flag.StringVar(&Config.Fake.Host, "fake_url", "", "fake url")
 
 	flag.BoolVar(&Debug, "debug", false, "enable Config.Debug")
 	flag.BoolVar(&show_version, "v", false, "show version")
@@ -76,7 +79,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		// fmt.Println(Config)
+		fmt.Println(Config.Tsp)
 	}
 	Config.Debug = Debug
 	if show_version {
@@ -201,25 +204,6 @@ func main() {
 	fmt.Println("Api port:", Config.Port)
 	fmt.Println("Api key:", Config.Key)
 	r.Run(":" + strconv.Itoa(Config.Port))
-}
-func Init() {
-	if Config.Tsp.Ws != 0 {
-		relay.WsMuxTunnelServer.ListenAndServe(Config.Tsp.Ws)
-	}
-	if Config.Tsp.Wss != 0 {
-		relay.WssMuxTunnelServer.ListenAndServe(Config.Tsp.Wss)
-	}
-	if Config.Syncfile != "" {
-		data, err := ioutil.ReadFile(Config.Syncfile)
-		if err == nil {
-			newRules := make(map[string]Rule)
-			json.Unmarshal(data, &newRules)
-			sync(newRules)
-		} else {
-			log.Println(err)
-		}
-	}
-	go ddns()
 }
 func checkKey(c *gin.Context) {
 	if c.Request.Header.Get("key") != Config.Key {

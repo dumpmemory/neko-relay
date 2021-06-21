@@ -32,7 +32,7 @@ func (s *Relay) RunWssTunnelServer(tcp, udp bool) error {
 	}
 	handler.Handle("/", NewRP(Config.Fake.Url, Config.Fake.Host))
 	s.Svr = &http.Server{Handler: handler}
-	go s.Svr.ServeTLS(s.TCPListen, Config.Certfile, Config.Keyfile)
+	go s.Svr.ServeTLS(s.TCPListen, Config.Tls.Cert, Config.Tls.Key)
 	return nil
 }
 func (s *Relay) WssTunnelServerTcpHandle(ws *websocket.Conn) {

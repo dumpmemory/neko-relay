@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"neko-relay/relay"
 	. "neko-relay/rules"
 	"net"
@@ -105,20 +108,10 @@ func sync(newRules map[string]Rule) {
 	syncing = false
 }
 
-var (
-	rsvr = &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			d := net.Dialer{
-				Timeout: time.Duration(10000) * time.Millisecond,
-			}
-			return d.DialContext(ctx, Config.Dns.Network, Config.Dns.Server+":53")
-		},
-	}
-)
+var Rsvr = net.DefaultResolver
 
 func getIP(host string) (string, error) {
-	ips, err := rsvr.LookupHost(context.Background(), host)
+	ips, err := Rsvr.LookupHost(context.Background(), host)
 	// ips, err := net.LookupHost(host)
 	if err != nil {
 		return "", err
@@ -142,4 +135,35 @@ func ddns() {
 			}
 		}
 	}
+}
+
+func Init() {
+	if Config.Dns.Nameserver != "" {
+		Rsvr = &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{
+					Timeout: time.Duration(10000) * time.Millisecond,
+				}
+				return d.DialContext(ctx, Config.Dns.Network, Config.Dns.Nameserver+":53")
+			},
+		}
+	}
+	if Config.Tsp.Ws > 0 {
+		relay.WsMuxTunnelServer.ListenAndServe(Config.Tsp.Ws)
+	}
+	if Config.Tsp.Wss > 0 {
+		relay.WssMuxTunnelServer.ListenAndServe(Config.Tsp.Wss)
+	}
+	if Config.Syncfile != "" {
+		data, err := ioutil.ReadFile(Config.Syncfile)
+		if err == nil {
+			newRules := make(map[string]Rule)
+			json.Unmarshal(data, &newRules)
+			sync(newRules)
+		} else {
+			log.Println(err)
+		}
+	}
+	go ddns()
 }
