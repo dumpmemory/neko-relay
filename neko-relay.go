@@ -230,6 +230,16 @@ func getData(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{
 		"syncing": syncing,
+		"tsp": gin.H{
+			"ws": gin.H{
+				"port":   Config.Tsp.Ws,
+				"status": relay.WsMuxTunnelServer.TCPListen != nil,
+			},
+			"wss": gin.H{
+				"port":   Config.Tsp.Wss,
+				"status": relay.WssMuxTunnelServer.TCPListen != nil,
+			},
+		},
 		"errors":  errs,
 		"working": working,
 	})

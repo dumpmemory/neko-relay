@@ -149,10 +149,10 @@ func Init() {
 		}
 	}
 	if Config.Tsp.Ws > 0 {
-		relay.WsMuxTunnelServer.ListenAndServe(Config.Tsp.Ws)
+		relay.WsMuxTunnelServer.Serve(Config.Tsp.Ws)
 	}
 	if Config.Tsp.Wss > 0 {
-		relay.WssMuxTunnelServer.ListenAndServe(Config.Tsp.Wss)
+		relay.WssMuxTunnelServer.Serve(Config.Tsp.Wss)
 	}
 	if Config.Syncfile != "" {
 		data, err := ioutil.ReadFile(Config.Syncfile)

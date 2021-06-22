@@ -2,15 +2,18 @@ package relay
 
 import (
 	"errors"
+	"fmt"
+	"net"
 	"net/http"
 	"strconv"
 	"sync"
 )
 
 type TunnelServer struct {
-	mu       *sync.RWMutex
-	Handlers map[string]http.Handler
-	RP       *RP
+	mu        *sync.RWMutex
+	Handlers  map[string]http.Handler
+	RP        *RP
+	TCPListen *net.TCPListener
 }
 
 func (S *TunnelServer) AddHandler(pattern string, handler http.Handler) error {
@@ -50,7 +53,17 @@ func (S *TunnelServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		S.RP.ServeHTTP(w, r)
 	}
 }
-func (S *TunnelServer) ListenAndServe(port int) error {
-	go http.ListenAndServe(":"+strconv.Itoa(port), S)
+func (S *TunnelServer) Serve(port int) error {
+	taddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(port))
+	if err != nil {
+		fmt.Println("Start TunnelMuxServer:", err)
+		return err
+	}
+	S.TCPListen, err = net.ListenTCP("tcp", taddr)
+	if err != nil {
+		fmt.Println("Start TunnelMuxServer:", err)
+		return err
+	}
+	go http.Serve(S.TCPListen, S)
 	return nil
 }

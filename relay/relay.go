@@ -91,7 +91,7 @@ func (s *Relay) Serve() error {
 		return s.RunWsTunnelServer(true, false)
 	} else if s.Protocol == "ws_tunnel_server_udp" {
 		return s.RunWsTunnelServer(false, true)
-	} else if s.Protocol == "ws_tunnel_server_tcp+udp" || s.Protocol == "wss_tunnel_server" {
+	} else if s.Protocol == "ws_tunnel_server_tcp+udp" || s.Protocol == "ws_tunnel_server" {
 		return s.RunWsTunnelServer(true, true)
 
 	} else if s.Protocol == "ws_tunnel_client_tcp" {
@@ -142,6 +142,13 @@ func (s *Relay) Serve() error {
 }
 
 func (s *Relay) OK() (bool, error) {
+	if Config.Tsp.Ws > 0 && strings.Contains(s.Protocol, "ws_tunnel_server") {
+		return true, nil
+	}
+	if Config.Tsp.Wss > 0 && strings.Contains(s.Protocol, "wss_tunnel_server") {
+		return true, nil
+	}
+
 	if strings.Contains(s.Protocol, "tcp") && (s.TCPListen == nil) {
 		return false, errors.New("tcp listen is null")
 	}
@@ -156,6 +163,14 @@ func (s *Relay) Close() error {
 	close(s.StopCh)
 	if s.Svr != nil {
 		s.Svr.Shutdown(context.Background())
+	}
+	if Config.Tsp.Ws > 0 && strings.Contains(s.Protocol, "ws_tunnel_server") {
+		WsMuxTunnelServer.DelHandler("/ws/tcp/" + s.RID + "/")
+		WsMuxTunnelServer.DelHandler("/ws/udp/" + s.RID + "/")
+	}
+	if Config.Tsp.Wss > 0 && strings.Contains(s.Protocol, "wss_tunnel_server") {
+		WssMuxTunnelServer.DelHandler("/wss/tcp/" + s.RID + "/")
+		WssMuxTunnelServer.DelHandler("/wss/udp/" + s.RID + "/")
 	}
 	time.Sleep(5 * time.Millisecond)
 	if s.TCPListen != nil {
