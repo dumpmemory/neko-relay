@@ -94,6 +94,10 @@ func main() {
 	relay.Config = Config
 	relay.GetCert()
 	r := gin.New()
+	r.Any("/ping", func(c *gin.Context) {
+		c.Writer.Write([]byte("pong"))
+		c.Done()
+	})
 	datapath := "/data"
 	if Config.Key != "" {
 		datapath = "/data/" + Config.Key

@@ -91,7 +91,7 @@ func (s *Relay) Serve() error {
 		return s.RunWsTunnelServer(true, false)
 	} else if s.Protocol == "ws_tunnel_server_udp" {
 		return s.RunWsTunnelServer(false, true)
-	} else if s.Protocol == "ws_tunnel_server" {
+	} else if s.Protocol == "ws_tunnel_server_tcp+udp" || s.Protocol == "wss_tunnel_server" {
 		return s.RunWsTunnelServer(true, true)
 
 	} else if s.Protocol == "ws_tunnel_client_tcp" {
