@@ -51,7 +51,6 @@ func (s *Relay) AcceptAndHandleUDP(handle func(c net.Conn) error) error {
 			}()
 		}
 	}
-	return nil
 }
 func (s *Relay) RunUDPServer() error {
 	err := s.ListenUDP()

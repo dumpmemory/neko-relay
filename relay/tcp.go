@@ -35,7 +35,6 @@ func (s *Relay) AcceptAndHandleTCP(handle func(c *net.TCPConn) error) error {
 			}
 		}
 	}
-	return nil
 }
 
 func (s *Relay) RunTCPServer() error {
