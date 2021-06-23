@@ -6,7 +6,7 @@
 
 也可以直接下载release已编译好的文件直接运行
 
-`config.yaml`说明详见文件注释
+`config.yaml`说明详见`config.yaml.example`注释
 
 # API列表
 
@@ -18,6 +18,25 @@
 |`/sync`|添加规则|`[{rid,remote,rport,type}, ...]`|
 |`/traffic`|流量统计||
 |`/stat`|服务器状态||
+|`/ping`|测试连接,返回`pong`||
+
+目前规则`type`列表:
+
+- `tcp`
+- `udp`
+- `tcp+udp`
+- `ws_tunnel_server_tcp`
+- `ws_tunnel_server_udp`
+- `ws_tunnel_server_tcp+udp`
+- `ws_tunnel_client_tcp`
+- `ws_tunnel_client_udp`
+- `ws_tunnel_client_tcp+udp`
+- `wss_tunnel_server_tcp`
+- `wss_tunnel_server_udp`
+- `wss_tunnel_server_tcp+udp`
+- `wss_tunnel_client_tcp`
+- `wss_tunnel_client_udp`
+- `wss_tunnel_client_tcp+udp`
 
 ---
 

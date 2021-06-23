@@ -4,20 +4,23 @@ syncfile: rules.json # 同步规则备份路径，启动时导入
 
 debug: true # 调试模式
 
-certfile: public.pem # ssl 公钥路径
-keyfile: private.key # ssl 私钥路径
+tls:
+  cert: public.pem # 公钥路径
+  key: private.key # 私钥路径
 
-dns:
-  server: 223.5.5.5
-  network: udp
+# dns: # 自定义dns
+#   nameserver: 223.5.5.5
+#   network: udp # 使用udp/tcp连接nameserver
+#   timeout: 2000 # 解析超时时间
 
-tsp: # tunnel server port
-  ws: 11451
-  wss:
-  h2:
+# tsp: # 隧道落地端 端口复用
+#   ws: 11451
+#   wss:
+#   h2:
 
 fake:
-  host: www.upyun.com # 隧道伪装host
-  url: https://www.upyun.com # 隧道伪装反代网址
-  headers:
+  host: www.microsoft.com # 隧道伪装host
+  url: https://www.microsoft.com # 隧道伪装反代网址
+  headers: # 隧道伪装headers
     Connection: keep-alive
+    Content-Type: application/octet-stream
