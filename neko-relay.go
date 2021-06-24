@@ -48,10 +48,12 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		str, _ := json.MarshalIndent(Config, "", "    ")
-		fmt.Println(string(str))
+		if Debug || Config.Debug {
+			Config.Debug = true
+			str, _ := json.MarshalIndent(Config, "", "    ")
+			fmt.Println(string(str))
+		}
 	}
-	Config.Debug = Debug
 	if show_version {
 		fmt.Println("neko-relay v1.4.4")
 		fmt.Println("TCP & UDP & WS TUNNEL & WSS TUNNEL & Tunnel Mux & HTTP & HTTPS & STAT")
