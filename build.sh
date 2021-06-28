@@ -9,8 +9,8 @@ echo "build windows amd64..."
 CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build                   -ldflags="-w -s" -o build/neko-relay_windows_amd64.exe
 echo "build freebsd amd64..."
 CGO_ENABLED=0 GOOS=freebsd GOARCH=amd64 go build                   -ldflags="-w -s" -o build/neko-relay_freebsd_amd64
-echo "build openbsd amd64..."
-CGO_ENABLED=0 GOOS=openbsd GOARCH=amd64 go build                   -ldflags="-w -s" -o build/neko-relay_openbsd_amd64
+# echo "build openbsd amd64..."
+# CGO_ENABLED=0 GOOS=openbsd GOARCH=amd64 go build                   -ldflags="-w -s" -o build/neko-relay_openbsd_amd64
 echo "build netbsd amd64..."
 CGO_ENABLED=0 GOOS=netbsd GOARCH=amd64 go build                    -ldflags="-w -s" -o build/neko-relay_netbsd_amd64
 
@@ -25,8 +25,8 @@ echo "build windows 386..."
 CGO_ENABLED=0 GOOS=windows GOARCH=386 go build                     -ldflags="-w -s" -o build/neko-relay_windows_386.exe
 echo "build freebsd 386..."
 CGO_ENABLED=0 GOOS=freebsd GOARCH=386 go build                     -ldflags="-w -s" -o build/neko-relay_freebsd_386
-echo "build openbsd 386..."
-CGO_ENABLED=0 GOOS=openbsd GOARCH=386 go build                     -ldflags="-w -s" -o build/neko-relay_openbsd_386
+# echo "build openbsd 386..."
+# CGO_ENABLED=0 GOOS=openbsd GOARCH=386 go build                     -ldflags="-w -s" -o build/neko-relay_openbsd_386
 echo "build netbsd 386..."
 CGO_ENABLED=0 GOOS=netbsd GOARCH=386 go build                      -ldflags="-w -s" -o build/neko-relay_netbsd_386
 
@@ -54,7 +54,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=mips64 GOMIPS=softfloat go build   -ldflags="-w 
 echo "build linux mips64le_softfloat ..."
 CGO_ENABLED=0 GOOS=linux GOARCH=mips64le GOMIPS=softfloat go build -ldflags="-w -s" -o build/neko-relay_linux_mips64le_softfloat
 
-echo "build linux ppc64 ..."
-CGO_ENABLED=0 GOOS=linux GOARCH=ppc64 go build                     -ldflags="-w -s" -o build/neko-relay_linux_ppc64
+# echo "build linux ppc64 ..."
+# CGO_ENABLED=0 GOOS=linux GOARCH=ppc64 go build                     -ldflags="-w -s" -o build/neko-relay_linux_ppc64
 echo "build linux ppc64le ..."
 CGO_ENABLED=0 GOOS=linux GOARCH=ppc64le go build                   -ldflags="-w -s" -o build/neko-relay_linux_ppc64le
