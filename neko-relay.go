@@ -55,8 +55,8 @@ func main() {
 		}
 	}
 	if show_version {
-		fmt.Println("neko-relay v1.4.4")
-		fmt.Println("TCP & UDP & WS TUNNEL & WSS TUNNEL & Tunnel Mux & HTTP & HTTPS & STAT")
+		fmt.Println("neko-relay v1.4.5")
+		fmt.Println("TCP & UDP & WS TUNNEL & WSS TUNNEL & Tunnel Mux & HTTP & HTTPS & LIMIT & STAT")
 		return
 	}
 	if !Debug {
