@@ -49,8 +49,10 @@ func (s *Relay) RunTCPServer() error {
 }
 
 func (s *Relay) TCPHandle(c *net.TCPConn) error {
-	defer c.Close()
-	defer s.releaseConn()
+	defer func() {
+		c.Close()
+		s.releaseConn()
+	}()
 	rc, err := net.DialTimeout("tcp", s.Raddr, time.Duration(s.TCPTimeout)*time.Second)
 	if err != nil {
 		fmt.Println("Dial TCP", s.Laddr, "<=>", s.Raddr, err)

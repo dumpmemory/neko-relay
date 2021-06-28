@@ -19,8 +19,8 @@ require (
 	github.com/pires/go-proxyproto v0.5.0
 	github.com/shirou/gopsutil v3.21.4+incompatible
 	github.com/tklauser/go-sysconf v0.3.5 // indirect
-	github.com/txthinking/runnergroup v0.0.0-20210326110939-37fc67d0da7c
-	github.com/txthinking/socks5 v0.0.0-20210326104807-61b5745ff346
+	github.com/txthinking/runnergroup v0.0.0-20210608031112-152c7c4432bf
+	github.com/txthinking/socks5 v0.0.0-20210621031011-19f686396dde
 	github.com/txthinking/x v0.0.0-20210326105829-476fab902fbe // indirect
 	github.com/ugorji/go v1.2.5 // indirect
 	golang.org/x/crypto v0.0.0-20210506145944-38f3c27a63bf // indirect

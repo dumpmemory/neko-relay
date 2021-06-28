@@ -16,30 +16,36 @@ import (
 	"time"
 
 	"github.com/juju/ratelimit"
+	cmap "github.com/orcaman/concurrent-map"
 )
 
 var (
 	Config config.CONF
+	D      = net.Dialer{Timeout: 30 * time.Second}
 )
 
 type Relay struct {
-	RID        string
-	TCPAddr    *net.TCPAddr
-	UDPAddr    *net.UDPAddr
-	TCPListen  *net.TCPListener
-	UDPConn    *net.UDPConn
-	Svr        *http.Server
-	TCPTimeout int
-	UDPTimeout int
-	Laddr      string
-	Raddr      string
-	REMOTE     string
-	RIP        string
-	RPORT      int
-	Traffic    *TF
-	Protocol   string
-	StopCh     chan struct{}
-	Limit      struct {
+	RID          string
+	Laddr        string
+	TCPAddr      *net.TCPAddr
+	UDPAddr      *net.UDPAddr
+	TCPListen    *net.TCPListener
+	UDPConn      *net.UDPConn
+	UDPExchanges cmap.ConcurrentMap
+	UDPSrc       cmap.ConcurrentMap
+	Svr          *http.Server
+	TCPTimeout   int
+	UDPTimeout   int
+	Raddr        string
+	RTCPAddr     *net.TCPAddr
+	RUDPAddr     *net.UDPAddr
+	REMOTE       string
+	RIP          string
+	RPORT        int
+	Traffic      *TF
+	Protocol     string
+	StopCh       chan struct{}
+	Limit        struct {
 		Speed       int
 		Connections int
 	}
@@ -58,17 +64,27 @@ func NewRelay(rid string, r Rule, tcpTimeout, udpTimeout int, traffic *TF, proto
 	if err != nil {
 		return nil, err
 	}
+	rtaddr, err := net.ResolveTCPAddr("tcp", raddr)
+	if err != nil {
+		return nil, err
+	}
+	ruaddr, err := net.ResolveUDPAddr("udp", raddr)
+	if err != nil {
+		return nil, err
+	}
 	if err := limits.Raise(); err != nil {
 		log.Println("Try to raise system limits, got", err)
 	}
 	s := &Relay{
 		RID:        rid,
+		Laddr:      laddr,
 		TCPAddr:    taddr,
 		UDPAddr:    uaddr,
 		TCPTimeout: tcpTimeout,
 		UDPTimeout: udpTimeout,
-		Laddr:      laddr,
 		Raddr:      raddr,
+		RTCPAddr:   rtaddr,
+		RUDPAddr:   ruaddr,
 		RIP:        r.RIP,
 		REMOTE:     r.Remote,
 		Traffic:    traffic,
@@ -99,7 +115,6 @@ func (s *Relay) Serve() error {
 			return err
 		}
 		return s.RunUDPServer()
-
 	} else if s.Protocol == "http" {
 		return s.RunHttpServer(false)
 	} else if s.Protocol == "https" {
@@ -207,15 +222,20 @@ var (
 			return make([]byte, 16*1024)
 		},
 	}
+	LPool = sync.Pool{
+		New: func() interface{} {
+			return make([]byte, 32*1024)
+		},
+	}
 )
 
 func (s *Relay) Copy(dst, src net.Conn) error {
 	defer src.Close()
 	defer dst.Close()
-	return s.Copy_io(dst, src)
+	return s.Copy_io(dst, src, false)
 }
 
-func (s *Relay) Copy_io(dst io.Writer, src io.Reader) error {
+func (s *Relay) Copy_io(dst io.Writer, src io.Reader, large_buf bool) error {
 	if s.Limit.Speed > 0 {
 		src = ratelimit.Reader(src, s.Bucket)
 	}
@@ -223,23 +243,50 @@ func (s *Relay) Copy_io(dst io.Writer, src io.Reader) error {
 	// if err != nil {
 	// 	return nil
 	// }
-	// if tf != nil {
-	// 	tf.Add(uint64(n))
-	// }
+	// s.Traffic.Add(uint64(n))
 	// return nil
-	buf := Pool.Get().([]byte)
-	defer Pool.Put(buf)
+	var b []byte
+	if large_buf {
+		b = LPool.Get().([]byte)
+		defer LPool.Put(b)
+	} else {
+		b = Pool.Get().([]byte)
+		defer Pool.Put(b)
+	}
 	for {
 		select {
 		case <-s.StopCh:
 			return nil
 		default:
-			n, err := src.Read(buf[:])
+			n, err := src.Read(b[:])
 			if err != nil {
 				return err
 			}
 			s.Traffic.Add(uint64(n))
-			if _, err := dst.Write(buf[0:n]); err != nil {
+			if _, err := dst.Write(b[0:n]); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func (s *Relay) Copy_udp(dst *net.UDPConn, src io.Reader, ClientAddr *net.UDPAddr) error {
+	if s.Limit.Speed > 0 {
+		src = ratelimit.Reader(src, s.Bucket)
+	}
+	b := LPool.Get().([]byte)
+	defer LPool.Put(b)
+	for {
+		select {
+		case <-s.StopCh:
+			return nil
+		default:
+			n, err := src.Read(b[:])
+			if err != nil {
+				return err
+			}
+			s.Traffic.Add(uint64(n))
+			if _, err := dst.WriteToUDP(b[0:n], ClientAddr); err != nil {
 				return err
 			}
 		}

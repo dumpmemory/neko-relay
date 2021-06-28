@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"neko-relay/relay"
 	. "neko-relay/rules"
 	"neko-relay/stat"
@@ -127,12 +125,6 @@ func PostSync(c *gin.Context) {
 	newRules := make(map[string]Rule)
 	data := []byte(c.PostForm("rules"))
 	json.Unmarshal(data, &newRules)
-	if Config.Syncfile != "" {
-		err := ioutil.WriteFile(Config.Syncfile, data, 0644)
-		if err != nil {
-			log.Println(err)
-		}
-	}
 	sync(newRules)
 	resp(c, true, Rules, 200)
 }

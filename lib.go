@@ -94,18 +94,29 @@ func sync(newRules map[string]Rule) {
 		if Config.Debug {
 			fmt.Println(r)
 		}
-		rip, err := getIP(r.Remote)
-		if err != nil {
-			continue
+		if r.RIP == "" {
+			rip, err := getIP(r.Remote)
+			if err != nil {
+				continue
+			}
+			r.RIP = rip
 		}
-		r.RIP = rip
-		err = check(r)
+		err := check(r)
 		if err == nil {
 			Rules.Set(rid, r)
 			start(rid, r)
 		}
 	}
 	syncing = false
+	if Config.Syncfile != "" {
+		data, err := Rules.MarshalJSON()
+		if err == nil {
+			err = ioutil.WriteFile(Config.Syncfile, data, 0644)
+		}
+		if err != nil {
+			log.Println(err)
+		}
+	}
 }
 
 var Rsvr = net.DefaultResolver

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	cmap "github.com/orcaman/concurrent-map"
 )
 
 func (s *Relay) ListenUDP() (err error) {
@@ -14,15 +16,14 @@ func (s *Relay) ListenUDP() (err error) {
 	return
 }
 func (s *Relay) AcceptAndHandleUDP(handle func(c net.Conn) error) error {
-	wait := 1.0
-	table := make(map[string]*UDPDistribute)
-	buf := make([]byte, 1024*32*2)
+	table := cmap.New()
 	for {
 		select {
 		case <-s.StopCh:
 			return nil
 		default:
-			// s.acquireConn()
+			buf := make([]byte, 1024*32)
+			s.acquireConn()
 			n, addr, err := s.UDPConn.ReadFrom(buf)
 			if err != nil {
 				s.releaseConn()
@@ -30,27 +31,21 @@ func (s *Relay) AcceptAndHandleUDP(handle func(c net.Conn) error) error {
 				if err, ok := err.(net.Error); ok && err.Temporary() {
 					continue
 				}
-				time.Sleep(time.Duration(wait) * time.Second)
-				wait *= 1.1
-				break
-			} else {
-				wait = 1.0
+				return err
 			}
-			go func() {
-				buf = buf[:n]
-				if d, ok := table[addr.String()]; ok {
-					if d.Connected {
-						d.Cache <- buf
-						return
-					} else {
-						delete(table, addr.String())
-					}
+			b := buf[:n]
+			if d, ok := table.Get(addr.String()); ok {
+				if d.(*UDPConn).Connected {
+					d.(*UDPConn).Cache <- buf
+					continue
+				} else {
+					table.Remove(addr.String())
 				}
-				c := NewUDPDistribute(s.UDPConn, addr)
-				table[addr.String()] = c
-				c.Cache <- buf
-				handle(c)
-			}()
+			}
+			c := NewUDPConn(s.UDPConn, addr)
+			table.Set(addr.String(), c)
+			c.Cache <- b
+			go handle(c)
 		}
 	}
 }
@@ -72,7 +67,7 @@ func (s *Relay) UDPHandle(c net.Conn) error {
 		return err
 	}
 	defer rc.Close()
-	go s.Copy(c, rc)
-	s.Copy(rc, c)
+	go s.Copy_io(c, rc, true)
+	s.Copy_io(rc, c, true)
 	return nil
 }
