@@ -21,11 +21,13 @@ func (s *Relay) AcceptAndHandleTCP(handle func(c *net.TCPConn) error) error {
 		case <-s.StopCh:
 			return nil
 		default:
+			s.acquireConn()
 			c, err := s.TCPListen.AcceptTCP()
 			if err == nil {
 				go handle(c)
 				wait = 1.0
 			} else {
+				s.releaseConn()
 				fmt.Println("Accept", s.Laddr, err)
 				if err, ok := err.(net.Error); ok && err.Temporary() {
 					continue
@@ -48,14 +50,14 @@ func (s *Relay) RunTCPServer() error {
 
 func (s *Relay) TCPHandle(c *net.TCPConn) error {
 	defer c.Close()
+	defer s.releaseConn()
 	rc, err := net.DialTimeout("tcp", s.Raddr, time.Duration(s.TCPTimeout)*time.Second)
 	if err != nil {
 		fmt.Println("Dial TCP", s.Laddr, "<=>", s.Raddr, err)
 		return err
 	}
 	defer rc.Close()
-	go Copy(c, rc, s)
-	Copy(rc, c, s)
-
+	go s.Copy(c, rc)
+	s.Copy(rc, c)
 	return nil
 }

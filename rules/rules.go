@@ -1,9 +1,13 @@
 package rules
 
 type Rule struct {
-	Port   uint   `json:port`
-	Remote string `json:remote`
+	Port   int
+	Remote string
 	RIP    string
-	Rport  uint   `json:rport`
-	Type   string `json:type`
+	Rport  int
+	Type   string
+	Limit  struct {
+		Speed       int
+		Connections int
+	}
 }

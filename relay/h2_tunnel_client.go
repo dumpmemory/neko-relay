@@ -37,8 +37,8 @@ func (s *Relay) H2TunnelClientTcpHandle(c *net.TCPConn) error {
 	defer rc.Close()
 	rc.PayloadType = websocket.BinaryFrame
 
-	go Copy(rc, c, s)
-	Copy(c, rc, s)
+	go s.Copy(rc, c)
+	s.Copy(c, rc)
 	return nil
 }
 
@@ -72,7 +72,7 @@ func (s *Relay) H2TunnelClientUdpHandle(c net.Conn) error {
 	defer rc.Close()
 	rc.PayloadType = websocket.BinaryFrame
 
-	go Copy(c, rc, s)
-	Copy(rc, c, s)
+	go s.Copy(c, rc)
+	s.Copy(rc, c)
 	return nil
 }

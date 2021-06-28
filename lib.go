@@ -9,6 +9,7 @@ import (
 	"neko-relay/relay"
 	. "neko-relay/rules"
 	"net"
+	"strconv"
 	"time"
 
 	cmap "github.com/orcaman/concurrent-map"
@@ -120,7 +121,7 @@ func getIP(host string) (string, error) {
 
 func ddns() {
 	for {
-		time.Sleep(time.Second * 60)
+		time.Sleep(time.Second * 30)
 		for syncing {
 			time.Sleep(100 * time.Millisecond)
 		}
@@ -129,8 +130,12 @@ func ddns() {
 			RIP, err := getIP(r.Remote)
 			if err == nil && RIP != r.RIP {
 				r.RIP = RIP
-				stop(rid, r)
-				start(rid, r)
+				svr, _ := Svrs.Get(rid)
+				Svr := svr.(*relay.Relay)
+				Svr.Raddr = r.RIP + ":" + strconv.Itoa(r.Rport)
+				Rules.Set(rid, r)
+				// Svrs.Set(rid, Svr)
+				// restart(rid, r)
 			}
 		}
 	}

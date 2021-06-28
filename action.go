@@ -28,11 +28,9 @@ func check(r Rule) error {
 }
 func ParseRule(c *gin.Context) (rid string, r Rule, err error) {
 	rid = c.PostForm("rid")
-	port, _ := strconv.Atoi(c.PostForm("port"))
-	Port := uint(port)
+	Port, _ := strconv.Atoi(c.PostForm("port"))
 	remote := c.PostForm("remote")
-	rport, _ := strconv.Atoi(c.PostForm("rport"))
-	Rport := uint(rport)
+	Rport, _ := strconv.Atoi(c.PostForm("rport"))
 	typ := c.PostForm("type")
 	var RIP string
 	RIP, err = getIP(remote)

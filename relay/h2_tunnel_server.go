@@ -38,8 +38,8 @@ func (s *Relay) H2TunnelServerTcpHandle(ws *websocket.Conn) {
 		return
 	}
 	defer rc.Close()
-	go Copy(rc, ws, s)
-	Copy(ws, rc, s)
+	go s.Copy(rc, ws)
+	s.Copy(ws, rc)
 }
 
 func (s *Relay) H2TunnelServerUdpHandle(ws *websocket.Conn) {
@@ -52,6 +52,6 @@ func (s *Relay) H2TunnelServerUdpHandle(ws *websocket.Conn) {
 		return
 	}
 	defer rc.Close()
-	go Copy(rc, ws, s)
-	Copy(ws, rc, s)
+	go s.Copy(rc, ws)
+	s.Copy(ws, rc)
 }

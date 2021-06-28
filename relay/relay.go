@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/juju/ratelimit"
 )
 
 var (
@@ -37,11 +39,17 @@ type Relay struct {
 	Traffic    *TF
 	Protocol   string
 	StopCh     chan struct{}
+	Limit      struct {
+		Speed       int
+		Connections int
+	}
+	Bucket      *ratelimit.Bucket
+	ConnLimiter chan struct{}
 }
 
 func NewRelay(rid string, r Rule, tcpTimeout, udpTimeout int, traffic *TF, protocol string) (*Relay, error) {
-	laddr := ":" + strconv.Itoa(int(r.Port))
-	raddr := r.RIP + ":" + strconv.Itoa(int(r.Rport))
+	laddr := ":" + strconv.Itoa(r.Port)
+	raddr := r.RIP + ":" + strconv.Itoa(r.Rport)
 	taddr, err := net.ResolveTCPAddr("tcp", laddr)
 	if err != nil {
 		return nil, err
@@ -65,6 +73,16 @@ func NewRelay(rid string, r Rule, tcpTimeout, udpTimeout int, traffic *TF, proto
 		REMOTE:     r.Remote,
 		Traffic:    traffic,
 		Protocol:   protocol,
+		Limit:      r.Limit,
+	}
+	if r.Limit.Speed > 0 {
+		s.Bucket = ratelimit.NewBucketWithRate(
+			float64(r.Limit.Speed*128*1024),
+			int64(r.Limit.Speed*128*1024),
+		)
+	}
+	if r.Limit.Connections > 0 {
+		s.ConnLimiter = make(chan struct{}, r.Limit.Connections)
 	}
 	return s, nil
 }
@@ -191,13 +209,16 @@ var (
 	}
 )
 
-func Copy(dst, src net.Conn, s *Relay) error {
+func (s *Relay) Copy(dst, src net.Conn) error {
 	defer src.Close()
 	defer dst.Close()
-	return Copy_io(dst, src, s)
+	return s.Copy_io(dst, src)
 }
 
-func Copy_io(dst io.Writer, src io.Reader, s *Relay) error {
+func (s *Relay) Copy_io(dst io.Writer, src io.Reader) error {
+	if s.Limit.Speed > 0 {
+		src = ratelimit.Reader(src, s.Bucket)
+	}
 	// n, err := io.Copy(dst, src)
 	// if err != nil {
 	// 	return nil
@@ -217,13 +238,21 @@ func Copy_io(dst io.Writer, src io.Reader, s *Relay) error {
 			if err != nil {
 				return err
 			}
-			if s == nil {
-				return errors.New("s is nil")
-			}
 			s.Traffic.Add(uint64(n))
 			if _, err := dst.Write(buf[0:n]); err != nil {
 				return err
 			}
 		}
 	}
+}
+
+func (s *Relay) acquireConn() {
+	if s.Limit.Connections > 0 {
+		s.ConnLimiter <- struct{}{}
+	}
+}
+func (s *Relay) releaseConn() {
+	// if s.Limit.Connections > 0 {
+	<-s.ConnLimiter
+	// }
 }

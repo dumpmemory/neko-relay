@@ -45,8 +45,8 @@ func (s *Relay) WssTunnelServerTcpHandle(ws *websocket.Conn) {
 	}
 	rc := tmp.(*net.TCPConn)
 	defer rc.Close()
-	go Copy(rc, ws, s)
-	Copy(ws, rc, s)
+	go s.Copy(rc, ws)
+	s.Copy(ws, rc)
 }
 
 func (s *Relay) WssTunnelServerUdpHandle(ws *websocket.Conn) {
@@ -59,8 +59,8 @@ func (s *Relay) WssTunnelServerUdpHandle(ws *websocket.Conn) {
 	}
 	defer rc.Close()
 
-	go Copy(rc, ws, s)
-	Copy(ws, rc, s)
+	go s.Copy(rc, ws)
+	s.Copy(ws, rc)
 }
 
 var WssMuxTunnelServer = &TunnelServer{

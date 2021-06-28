@@ -448,7 +448,7 @@ func (p *ReverseProxy) copyResponse(dst io.Writer, src io.Reader, flushInterval 
 		}
 	}
 
-	return Copy_io(dst, src, p.s)
+	return p.s.Copy_io(dst, src)
 	// var buf []byte
 	// if p.BufferPool != nil {
 	// 	buf = p.BufferPool.Get()
@@ -579,8 +579,8 @@ func (p *ReverseProxy) handleUpgradeResponse(rw http.ResponseWriter, req *http.R
 		p.getErrorHandler()(rw, req, fmt.Errorf("response flush: %v", err))
 		return
 	}
-	go Copy_io(conn, backConn, p.s)
-	Copy_io(backConn, conn, p.s)
+	go p.s.Copy_io(conn, backConn)
+	p.s.Copy_io(backConn, conn)
 	// errc := make(chan error, 1)
 	// spc := switchProtocolCopier{user: conn, backend: backConn}
 	// go spc.copyToBackend(errc)

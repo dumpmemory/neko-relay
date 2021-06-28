@@ -37,8 +37,8 @@ func (s *Relay) WsTunnelClientTcpHandle(c *net.TCPConn) error {
 	defer rc.Close()
 	rc.PayloadType = websocket.BinaryFrame
 
-	go Copy(rc, c, s)
-	Copy(c, rc, s)
+	go s.Copy(rc, c)
+	s.Copy(c, rc)
 	return nil
 }
 
@@ -53,6 +53,7 @@ func (s *Relay) RunWsTunnelUdpClient() error {
 
 func (s *Relay) WsTunnelClientUdpHandle(c net.Conn) error {
 	defer c.Close()
+	defer s.releaseConn()
 	ws_config, err := websocket.NewConfig("ws://"+s.Raddr+"/ws/udp/"+s.RID+"/", "http://"+s.Raddr+"/ws/udp/"+s.RID+"/")
 	if err != nil {
 		fmt.Println("WS Config", s.Raddr, err)
@@ -72,7 +73,7 @@ func (s *Relay) WsTunnelClientUdpHandle(c net.Conn) error {
 	defer rc.Close()
 	rc.PayloadType = websocket.BinaryFrame
 
-	go Copy(c, rc, s)
-	Copy(rc, c, s)
+	go s.Copy(c, rc)
+	s.Copy(rc, c)
 	return nil
 }

@@ -16,14 +16,16 @@ func (s *Relay) ListenUDP() (err error) {
 func (s *Relay) AcceptAndHandleUDP(handle func(c net.Conn) error) error {
 	wait := 1.0
 	table := make(map[string]*UDPDistribute)
-	buf := make([]byte, 1024*16)
+	buf := make([]byte, 1024*32*2)
 	for {
 		select {
 		case <-s.StopCh:
 			return nil
 		default:
+			// s.acquireConn()
 			n, addr, err := s.UDPConn.ReadFrom(buf)
 			if err != nil {
+				s.releaseConn()
 				fmt.Println("Accept", s.Laddr, err)
 				if err, ok := err.(net.Error); ok && err.Temporary() {
 					continue
@@ -63,13 +65,14 @@ func (s *Relay) RunUDPServer() error {
 
 func (s *Relay) UDPHandle(c net.Conn) error {
 	defer c.Close()
+	defer s.releaseConn()
 	rc, err := net.DialTimeout("udp", s.Raddr, time.Duration(s.UDPTimeout)*time.Second)
 	if err != nil {
 		fmt.Println("Dial UDP", s.Laddr, "<=>", s.Raddr, err)
 		return err
 	}
 	defer rc.Close()
-	go Copy(c, rc, s)
-	Copy(rc, c, s)
+	go s.Copy(c, rc)
+	s.Copy(rc, c)
 	return nil
 }
