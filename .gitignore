@@ -3,3 +3,4 @@ neko-relay
 *.pem
 *.json
 *.yaml
+build
