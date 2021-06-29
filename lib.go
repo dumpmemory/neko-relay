@@ -76,10 +76,9 @@ func sync(newRules map[string]Rule) {
 	if Config.Debug {
 		fmt.Println(newRules)
 	}
-	for item := range Rules.IterBuffered() {
-		rid := item.Key
+	for rid, nr := range Rules.Items() {
 		rule, has := newRules[rid]
-		if has && cmp(rule, item.Val.(Rule)) {
+		if has && cmp(rule, nr.(Rule)) {
 			delete(newRules, rid)
 		} else {
 			stop(rid, rule)
@@ -136,8 +135,8 @@ func ddns() {
 		for syncing {
 			time.Sleep(100 * time.Millisecond)
 		}
-		for item := range Rules.IterBuffered() {
-			rid, r := item.Key, item.Val.(Rule)
+		for rid, R := range Rules.Items() {
+			r := R.(Rule)
 			RIP, err := getIP(r.Remote)
 			if err == nil && RIP != r.RIP {
 				r.RIP = RIP

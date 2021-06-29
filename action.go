@@ -46,11 +46,10 @@ func Ping(c *gin.Context) {
 func PostTraffic(c *gin.Context) {
 	reset, _ := strconv.ParseBool(c.DefaultPostForm("reset", "false"))
 	y := gin.H{}
-	for item := range Traffic.IterBuffered() {
-		rid, tf := item.Key, item.Val.(*relay.TF)
-		y[rid] = tf.Total()
+	for rid, tf := range Traffic.Items() {
+		y[rid] = tf.(*relay.TF).Total()
 		if reset {
-			tf.Reset()
+			tf.(*relay.TF).Reset()
 		}
 	}
 	resp(c, true, y, 200)
@@ -138,11 +137,11 @@ func Stat(c *gin.Context) {
 func GetData(c *gin.Context) {
 	working := Rules.Items()
 	errs := make(map[string]Rule)
-	for t := range Svrs.IterBuffered() {
-		ok, _ := t.Val.(*relay.Relay).OK()
+	for rid, svr := range Svrs.Items() {
+		ok, _ := svr.(*relay.Relay).OK()
 		if !ok {
-			errs[t.Key] = working[t.Key].(Rule)
-			delete(working, t.Key)
+			errs[rid] = working[rid].(Rule)
+			delete(working, rid)
 		}
 	}
 	c.JSON(200, gin.H{
