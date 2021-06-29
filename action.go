@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"neko-relay/relay"
 	. "neko-relay/rules"
 	"neko-relay/stat"
@@ -36,6 +35,7 @@ func ParseRule(c *gin.Context) (rid string, r Rule, err error) {
 		return
 	}
 	r = Rule{Port: Port, Remote: remote, RIP: RIP, Rport: Rport, Type: typ}
+	json.Unmarshal([]byte(c.PostForm("limit")), &r.Limit)
 	err = check(r)
 	return
 }
@@ -72,7 +72,7 @@ func PostAdd(c *gin.Context) {
 }
 func PostEdit(c *gin.Context) {
 	rid, r, err := ParseRule(c)
-	fmt.Println("edit", rid, r, err)
+	// fmt.Println("edit", rid, r, err)
 	if err == nil {
 		stop(rid, r)
 		Rules.Set(rid, r)
@@ -123,8 +123,7 @@ func PostDel(c *gin.Context) {
 }
 func PostSync(c *gin.Context) {
 	newRules := make(map[string]Rule)
-	data := []byte(c.PostForm("rules"))
-	json.Unmarshal(data, &newRules)
+	json.Unmarshal([]byte(c.PostForm("rules")), &newRules)
 	sync(newRules)
 	resp(c, true, Rules, 200)
 }
