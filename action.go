@@ -123,6 +123,10 @@ func PostDel(c *gin.Context) {
 func PostSync(c *gin.Context) {
 	newRules := make(map[string]Rule)
 	json.Unmarshal([]byte(c.PostForm("rules")), &newRules)
+	if len(newRules) < 1 {
+		resp(c, false, "new rules is empty!", 200)
+		return
+	}
 	sync(newRules)
 	resp(c, true, Rules, 200)
 }
