@@ -40,15 +40,6 @@ func (s *Relay) AcceptAndHandleUdp(handle func(addr *net.UDPAddr, b []byte) erro
 	}
 }
 
-type uconn struct {
-	UDPConn *net.UDPConn
-	ue      *socks5.UDPExchange
-}
-
-func (u *uconn) Write(b []byte) (int, error) {
-	return u.UDPConn.WriteToUDP(b, u.ue.ClientAddr)
-}
-
 func (s *Relay) UdpHandle(addr *net.UDPAddr, b []byte) error {
 	src := addr.String()
 	send := func(ue *socks5.UDPExchange, data []byte) error {
