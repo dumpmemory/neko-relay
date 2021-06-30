@@ -118,7 +118,7 @@ func (s *Relay) Serve() error {
 	} else if s.Protocol == "http" {
 		return s.RunHttpServer(false)
 	} else if s.Protocol == "https" {
-		return s.RunHttpServer(true)
+		return s.RunHttpsServer()
 
 	} else if s.Protocol == "ws_tunnel_server_tcp" {
 		return s.RunWsTunnelServer(true, false)
