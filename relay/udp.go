@@ -22,7 +22,8 @@ func (s *Relay) AcceptAndHandleUDP(handle func(c net.Conn) error) error {
 		case <-s.StopCh:
 			return nil
 		default:
-			buf := make([]byte, 1024*32)
+			buf := LPool.Get().([]byte)
+			// buf := make([]byte, 1024*32)
 			s.acquireConn()
 			n, addr, err := s.UDPConn.ReadFrom(buf)
 			if err != nil {
@@ -33,10 +34,9 @@ func (s *Relay) AcceptAndHandleUDP(handle func(c net.Conn) error) error {
 				}
 				return err
 			}
-			b := buf[:n]
 			if d, ok := table.Get(addr.String()); ok {
 				if d.(*UDPConn).Connected {
-					d.(*UDPConn).Cache <- buf
+					d.(*UDPConn).Cache <- buf[:n]
 					continue
 				} else {
 					table.Remove(addr.String())
@@ -44,7 +44,8 @@ func (s *Relay) AcceptAndHandleUDP(handle func(c net.Conn) error) error {
 			}
 			c := NewUDPConn(s.UDPConn, addr)
 			table.Set(addr.String(), c)
-			c.Cache <- b
+			c.Cache <- buf[:n]
+			LPool.Put(buf)
 			go handle(c)
 		}
 	}

@@ -299,7 +299,7 @@ func (s *Relay) acquireConn() {
 	}
 }
 func (s *Relay) releaseConn() {
-	// if s.Limit.Connections > 0 {
-	<-s.ConnLimiter
-	// }
+	if s.Limit.Connections > 0 {
+		<-s.ConnLimiter
+	}
 }
